@@ -1,10 +1,7 @@
-﻿using System;
-namespace Management_Webapi.Model.Dto
+﻿namespace Management_Webapi.Model.Response
 {
-    public class TaskDto
+    public class TaskResp
     {
-        public string Id { get; set; }
-
         public string Title { get; set; }
 
         public string Description { get; set; }
@@ -12,5 +9,9 @@ namespace Management_Webapi.Model.Dto
         public Priority Priority { get; set; }
 
         public DateTime DueDate { get; set; }
+    }
+    public class TaskDeleteResp
+    {
+        public bool IsSuccess { get; set; }
     }
 }

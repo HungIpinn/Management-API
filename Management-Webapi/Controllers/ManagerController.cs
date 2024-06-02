@@ -1,74 +1,114 @@
-﻿using Management_Webapi.Model.Dto;
+﻿using Management_Webapi.Mapping;
+using Management_Webapi.Model;
+using Management_Webapi.Model.Dto;
+using Management_Webapi.Model.Request;
+using Management_Webapi.Model.Response;
 using Microsoft.AspNetCore.Mvc;
+using System.Reflection;
 
 namespace Management_Webapi.Controllers
 {
-    public class ManagerController
+    [Route("api/[controller]/[Action]")]
+    [ApiController]
+    public class ManagerController : ControllerBase
     {
-        [Route("api/[controller]")]
-        [ApiController]
-        public class TasksController : ControllerBase
+        private static List<TaskDto> tasks = new List<TaskDto>();
+
+        [HttpGet]
+        public BaseResponse GetTasks()
         {
-            List<TaskDto> tasks = new List<TaskDto>();
+            var model = new BaseResponse();
+            model.data = tasks;
+            return model;
+        }
 
-            [HttpGet]
-            public ActionResult<IEnumerable<TaskDto>> GetTasks()
+        [HttpGet]
+        public BaseResponse GetTask(string id)
+        {
+            var model = new BaseResponse();
+            var resp = new TaskDto();
+            model.SetResponseError(ResponseError.NoError);
+            resp = tasks.FirstOrDefault(t => t.Id == id);
+            if (resp == null)
             {
-                return tasks;
+                model.code = 1;
+                model.SetResponseError(ResponseError.NotData);
             }
+            model.data = resp;
+            return model;
+        }
 
-            [HttpGet("{id}")]
-            public ActionResult<TaskDto> GetTask(int id)
+        [HttpPost]
+        public BaseResponse CreateTask(TaskReqs reqs)
+        {
+            var model = new BaseResponse();
+            var resp = new TaskResp();
+            model.SetResponseError(ResponseError.NoError);
+            if (!reqs.IsValidateReq())
             {
-                var task = tasks.FirstOrDefault(t => t.Id == id);
-                if (task == null)
-                {
-                    return NotFound();
-                }
-                return task;
+                model.code = 1;
+                model.SetResponseError(ResponseError.InvalidReqs);
+                model.data = resp;
+                return model;
             }
+            var TaskNew = reqs.ToModelTaskDto();
+            tasks.Add(TaskNew);
+            resp = TaskNew.ToTaskViewModel();
+            model.data = resp;
+            return model;
+        }
 
-            [HttpPost]
-            public ActionResult<TaskDto> CreateTask(TaskDto task)
+        [HttpPut]
+        public BaseResponse UpdateTask(TaskReqs reqs)
+        {
+            var model = new BaseResponse();
+            var resp = new TaskResp();
+            model.SetResponseError(ResponseError.NoError);
+            if (!reqs.IsValidateReq(true))
             {
-                if (tasks.Any(t => t.Id == task.Id))
-                {
-                    return BadRequest("Task with this ID already exists");
-                }
-                tasks.Add(task);
-                return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
+                model.code = 1;
+                model.SetResponseError(ResponseError.InvalidReqs);
+                model.data = resp;
+                return model;
             }
+            var existingTask = tasks.FirstOrDefault(t => t.Id == reqs.Id);
+            if (existingTask == null) 
+            {
+                model.code = 1;
+                model.SetResponseError(ResponseError.NotData);
+                model.data = resp;
+                return model;
+            }
+            var TaskUpdated = existingTask.ToModelTaskUpdated(reqs);
+            resp = TaskUpdated.ToTaskViewModel();
+            model.data = resp;
+            return model;
+        }
 
-            [HttpPut("{id}")]
-            public ActionResult<TaskDto> UpdateTask(int id, TaskDto task)
+        [HttpDelete]
+        public BaseResponse DeleteTask(string id)
+        {
+            var model = new BaseResponse();
+            var resp = new TaskDeleteResp();
+            if (string.IsNullOrEmpty(id))
             {
-                var existingTask = tasks.FirstOrDefault(t => t.Id == id);
-                if (existingTask == null)
-                {
-                    return NotFound();
-                }
-                if (task.DueDate < DateTime.Now)
-                {
-                    return BadRequest("Due date must be in the future");
-                }
-                existingTask.Title = task.Title;
-                existingTask.Description = task.Description;
-                existingTask.Priority = task.Priority;
-                existingTask.DueDate = task.DueDate;
-                return existingTask;
+                model.code = 1;
+                model.SetResponseError(ResponseError.InvalidReqs);
+                model.data = resp;
+                return model;
             }
-
-            [HttpDelete("{id}")]
-            public IActionResult DeleteTask(int id)
+            var TaskDto = tasks.FirstOrDefault(t => t.Id == id);
+            if (TaskDto == null)
             {
-                var task = tasks.FirstOrDefault(t => t.Id == id);
-                if (task == null)
-                {
-                    return NotFound();
-                }
-                tasks.Remove(task);
-                return NoContent();
+                model.code = 1;
+                model.SetResponseError(ResponseError.NotData);
+                model.data = resp;
+                return model;
             }
+            tasks.Remove(TaskDto);
+            resp.IsSuccess = true;
+            model.data = resp;
+            return model;
         }
     }
 }

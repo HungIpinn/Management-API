@@ -23,7 +23,7 @@ namespace Management_Webapi.Controllers
         }
 
         [HttpGet]
-        public BaseResponse GetTask(string id)
+        public BaseResponse GetTaskById(string id)
         {
             var model = new BaseResponse();
             var resp = new TaskDto();

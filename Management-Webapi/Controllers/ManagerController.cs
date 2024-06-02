@@ -12,13 +12,13 @@ namespace Management_Webapi.Controllers
     [ApiController]
     public class ManagerController : ControllerBase
     {
-        private static List<TaskDto> tasks = new List<TaskDto>();
+        private static List<TaskDto> _tasks = new List<TaskDto>();
 
         [HttpGet]
         public BaseResponse GetTasks()
         {
             var model = new BaseResponse();
-            model.data = tasks;
+            model.data = _tasks;
             return model;
         }
 
@@ -28,7 +28,7 @@ namespace Management_Webapi.Controllers
             var model = new BaseResponse();
             var resp = new TaskDto();
             model.SetResponseError(ResponseError.NoError);
-            resp = tasks.FirstOrDefault(t => t.Id == id);
+            resp = _tasks.FirstOrDefault(t => t.Id == id);
             if (resp == null)
             {
                 model.code = 1;
@@ -52,7 +52,7 @@ namespace Management_Webapi.Controllers
                 return model;
             }
             var TaskNew = reqs.ToModelTaskDto();
-            tasks.Add(TaskNew);
+            _tasks.Add(TaskNew);
             resp = TaskNew.ToTaskViewModel();
             model.data = resp;
             return model;
@@ -71,7 +71,7 @@ namespace Management_Webapi.Controllers
                 model.data = resp;
                 return model;
             }
-            var existingTask = tasks.FirstOrDefault(t => t.Id == reqs.Id);
+            var existingTask = _tasks.FirstOrDefault(t => t.Id == reqs.Id);
             if (existingTask == null) 
             {
                 model.code = 1;
@@ -97,7 +97,7 @@ namespace Management_Webapi.Controllers
                 model.data = resp;
                 return model;
             }
-            var TaskDto = tasks.FirstOrDefault(t => t.Id == id);
+            var TaskDto = _tasks.FirstOrDefault(t => t.Id == id);
             if (TaskDto == null)
             {
                 model.code = 1;
@@ -105,7 +105,7 @@ namespace Management_Webapi.Controllers
                 model.data = resp;
                 return model;
             }
-            tasks.Remove(TaskDto);
+            _tasks.Remove(TaskDto);
             resp.IsSuccess = true;
             model.data = resp;
             return model;

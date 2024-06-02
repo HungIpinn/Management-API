@@ -12,5 +12,6 @@ namespace Management_Webapi.Model.Dto
         public Priority Priority { get; set; }
 
         public DateTime DueDate { get; set; }
+        public string UserId { get; set; }
     }
 }

@@ -1,118 +1,202 @@
-﻿using Management_Webapi.Model.Dto;
+﻿using Management_Webapi.Mapping;
+using Management_Webapi.Model;
+using Management_Webapi.Model.Dto;
 using Management_Webapi.Model.Request;
+using Management_Webapi.Model.Response;
 using Management_Webapi.Service;
 using Management_Webapi.Service.Interface;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.OpenApi.Models;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Management_Webapi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/[controller]/[Action]")]
     [ApiController]
-    public class ManagerConManagerHaveAuthenControllertroller : ControllerBase
+    public class ManagerHaveAuthenController : ControllerBase
     {
         private readonly IAuthenService _authService;
-        private readonly List<TaskDto> _tasks = new List<TaskDto>();
+        private static List<TaskDto> _tasks = new List<TaskDto>();
 
-        public ManagerConManagerHaveAuthenControllertroller(IAuthenService authService)
+        public ManagerHaveAuthenController(IAuthenService authService)
         {
             _authService = authService;
         }
 
         [HttpPost("Register")]
-        public IActionResult Register([FromBody] UserDto model)
+        public BaseResponse Register([FromBody] AuthenReqs reqs)
         {
-            var user = _authService.RegisterUser(model.Username, model.Password);
-            return Ok(new { user.Id, user.Username });
+            var model = new BaseResponse();
+            var resp = new AuthenResp();
+            if (!reqs.IsValidateReq())
+            {
+                model.code = 1;
+                model.SetResponseError(ResponseError.InvalidReqs);
+                model.data = resp;
+                return model;
+            }
+            model.SetResponseError(ResponseError.NoError);
+            var user = _authService.RegisterUser(reqs.UserName, reqs.Password);
+            if(user == null)
+            {
+                model.code = 1;
+                model.SetResponseError(ResponseError.NotData);
+                model.data = resp;
+                return model;
+            }
+            var fakeToken = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+            resp.IsSuccess = true;
+            resp.Token = fakeToken;
+            model.data = resp;
+            return model;
         }
 
         [HttpPost("Login")]
-        public IActionResult Login([FromBody] UserDto model)
+        public BaseResponse Login([FromBody] AuthenReqs reqs)
         {
-            var user = _authService.AuthenticateUser(model.Username, model.Password);
+            var model = new BaseResponse();
+            var resp = new AuthenResp();
+            if (!reqs.IsValidateReq())
+            {
+                model.code = 1;
+                model.SetResponseError(ResponseError.InvalidReqs);
+                model.data = resp;
+                return model;
+            }
+            model.SetResponseError(ResponseError.NoError);
+            var user = _authService.AuthenticateUser(reqs.UserName, reqs.Password);
             if (user == null)
             {
-                return Unauthorized(new { message = "Invalid login attempt" });
+                model.code = 1;
+                model.SetResponseError(ResponseError.Unauthorized);
+                model.data = resp;
+                return model;
             }
-
-            // Fake token generation for demonstration purposes
-            var token = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
-            return Ok(new { token });
+            var fakeToken = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+            resp.IsSuccess = true;
+            resp.Token = fakeToken;
+            model.data = resp;
+            return model;
         }
 
-        //[HttpPost("CreateTask")]
-        //public IActionResult CreateTask([FromBody] TaskReqs reqs)
-        //{
-        //    // Fake user id for demonstration purposes
-        //    var userId = "fakeUserId";
-        //    var task = new TaskDto
-        //    {
-        //        Id = Guid.NewGuid().ToString(),
-        //        Title = reqs.Title,
-        //        Description = reqs.Description,
-        //        Priority = reqs.Priority,
-        //        DueDate = reqs.DueDate,
-        //        UserId = userId
-        //    };
-        //    _tasks.Add(task);
-        //    return Ok(new BaseResponse { data = new TaskResp { Id = task.Id, Title = task.Title, Description = task.Description, Priority = task.Priority, DueDate = task.DueDate } });
-        //}
+        [HttpPost("CreateTask")]
+        public BaseResponse CreateTask([FromBody] TaskReqs reqs)
+        {
+            var model = new BaseResponse();
+            var resp = new TaskResp();
+            model.SetResponseError(ResponseError.NoError);
+            if (!reqs.IsValidateReq())
+            {
+                model.code = 1;
+                model.SetResponseError(ResponseError.InvalidReqs);
+                model.data = resp;
+                return model;
+            }
+            var fakeUserId = "guiId123";
+            var TaskNew = reqs.ToModelTaskDto(fakeUserId);
+            _tasks.Add(TaskNew);
+            resp = TaskNew.ToTaskViewModel();
+            model.data = resp;
+            return model;
+        }
 
-        //[HttpGet("GetTasks")]
-        //public IActionResult GetTasks()
-        //{
-        //    // Fake user id for demonstration purposes
-        //    var userId = "fakeUserId";
-        //    var tasks = _tasks.Where(t => t.UserId == userId);
-        //    return Ok(new BaseResponse { data = tasks });
-        //}
+        [HttpGet("GetTasks")]
+        public BaseResponse GetTasks(int pageIndex, int pageSize, Sort sort, Filter filter, Priority priority)
+        {
+            var model = new BaseResponse();
+            var fakeUserId = "guiId123";
+            var tasks = _tasks.Where(t => t.UserId == fakeUserId);
+            if(filter == Filter.Priority)
+            {
+                var temp = tasks.Where(e => e.Priority == priority);
+                tasks = temp;
+            }
+            if (sort == Sort.Priority)
+            {
+                tasks.OrderByDescending(t => t.DueDate);
+            }
+            var paginatedTasks = tasks
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+            model.data = paginatedTasks;
+            return model;
+        }
 
-        //[HttpGet("GetTaskById/{id}")]
-        //public IActionResult GetTaskById(string id)
-        //{
-        //    // Fake user id for demonstration purposes
-        //    var userId = "fakeUserId";
-        //    var task = _tasks.FirstOrDefault(t => t.UserId == userId && t.Id == id);
-        //    if (task == null)
-        //    {
-        //        return NotFound();
-        //    }
-        //    return Ok(new BaseResponse { data = task });
-        //}
+        [HttpGet("GetTaskById")]
+        public BaseResponse GetTaskById(string id)
+        {
+            var model = new BaseResponse();
+            var resp = new TaskDto();
+            model.SetResponseError(ResponseError.NoError);
+            var fakeUserId = "fakeUserId";
+            resp = _tasks.FirstOrDefault(t => t.UserId == fakeUserId && t.Id == id);
+            if (resp == null)
+            {
+                model.code = 1;
+                model.SetResponseError(ResponseError.NotData);
+            }
+            model.data = resp;
+            return model;
+        }
 
-        //[HttpPut("UpdateTask")]
-        //public IActionResult UpdateTask([FromBody] TaskReqs reqs)
-        //{
-        //    // Fake user id for demonstration purposes
-        //    var userId = "fakeUserId";
-        //    var task = _tasks.FirstOrDefault(t => t.UserId == userId && t.Id == reqs.Id);
-        //    if (task == null)
-        //    {
-        //        return NotFound();
-        //    }
+        [HttpPut("UpdateTask")]
+        public BaseResponse UpdateTask([FromBody] TaskReqs reqs)
+        {
+            var model = new BaseResponse();
+            var resp = new TaskResp();
+            model.SetResponseError(ResponseError.NoError);
+            if (!reqs.IsValidateReq(true))
+            {
+                model.code = 1;
+                model.SetResponseError(ResponseError.InvalidReqs);
+                model.data = resp;
+                return model;
+            }
+            var fakeUserId = "fakeUserId";
+            var existingTask = _tasks.FirstOrDefault(t => t.UserId == fakeUserId && t.Id == reqs.Id);
+            if (existingTask == null)
+            {
+                model.code = 1;
+                model.SetResponseError(ResponseError.NotData);
+                model.data = resp;
+                return model;
+            }
+            var TaskUpdated = existingTask.ToModelTaskUpdated(reqs);
+            resp = TaskUpdated.ToTaskViewModel();
+            model.data = resp;
+            return model;
+        }
 
-        //    task.Title = reqs.Title;
-        //    task.Description = reqs.Description;
-        //    task.Priority = reqs.Priority;
-        //    task.DueDate = reqs.DueDate;
-
-        //    return Ok(new BaseResponse { data = new TaskResp { Id = task.Id, Title = task.Title, Description = task.Description, Priority = task.Priority, DueDate = task.DueDate } });
-        //}
-
-        //[HttpDelete("DeleteTask/{id}")]
-        //public IActionResult DeleteTask(string id)
-        //{
-        //    // Fake user id for demonstration purposes
-        //    var userId = "fakeUserId";
-        //    var task = _tasks.FirstOrDefault(t => t.UserId == userId && t.Id == id);
-        //    if (task == null)
-        //    {
-        //        return NotFound();
-        //    }
-        //    _tasks.Remove(task);
-        //    return Ok(new BaseResponse { data = new TaskDeleteResp { IsSuccess = true } });
-        //}
+        [HttpDelete("DeleteTask/{id}")]
+        public BaseResponse DeleteTask(string id)
+        {
+            var model = new BaseResponse();
+            var resp = new TaskDeleteResp();
+            if (string.IsNullOrEmpty(id))
+            {
+                model.code = 1;
+                model.SetResponseError(ResponseError.InvalidReqs);
+                model.data = resp;
+                return model;
+            }
+            var fakeUserId = "fakeUserId";
+            var TaskDto = _tasks.FirstOrDefault(t => t.UserId == fakeUserId && t.Id == id);
+            if (TaskDto == null)
+            {
+                model.code = 1;
+                model.SetResponseError(ResponseError.NotData);
+                model.data = resp;
+                return model;
+            }
+            _tasks.Remove(TaskDto);
+            resp.IsSuccess = true;
+            model.data = resp;
+            return model;
+        }
     }
 }
 

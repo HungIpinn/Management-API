@@ -13,7 +13,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-builder.Services.AddScoped<IAuthenService, AuthenService>();
+builder.Services.AddSingleton<IAuthenService, AuthenService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

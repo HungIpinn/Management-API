@@ -10,6 +10,10 @@ namespace Management_Webapi.Service
 
         public UserDto RegisterUser(string username, string password)
         {
+            if (_users.Any(u => u.Username == username))
+            {
+                return null;
+            }
             var user = new UserDto { Id = Guid.NewGuid().ToString(), Username = username, Password = password };
             _users.Add(user);
             return user;

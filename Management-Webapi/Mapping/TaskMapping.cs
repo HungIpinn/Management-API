@@ -17,7 +17,7 @@ namespace Management_Webapi.Mapping
             resp.Priority = dto.Priority;
             return resp;
         }
-        public static TaskDto ToModelTaskDto(this TaskReqs dto)
+        public static TaskDto ToModelTaskDto(this TaskReqs dto, string userID = "")
         {
             var resp = new TaskDto();
             string guiId = Guid.NewGuid().ToString();
@@ -26,6 +26,7 @@ namespace Management_Webapi.Mapping
             resp.Description = dto.Description;
             resp.DueDate = dto.DueDate;
             resp.Priority = dto.Priority ?? Model.Priority.Low;
+            resp.UserId = userID;
             return resp;
         }
         public static TaskDto ToModelTaskUpdated(this TaskDto dto, TaskReqs reqs)

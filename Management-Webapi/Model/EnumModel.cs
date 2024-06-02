@@ -32,4 +32,18 @@ namespace Management_Webapi.Model
         #endregion
 
     }
+    public enum Sort
+    {
+        [Description("No Sort")]
+        NoSort = 0,
+        [Description("Priority")]
+        Priority = 1,
+    }
+    public enum Filter
+    {
+        [Description("No Filter")]
+        NoSort = 0,
+        [Description("Priority")]
+        Priority = 1,
+    }
 }
